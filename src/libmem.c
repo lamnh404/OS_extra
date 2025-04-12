@@ -107,8 +107,8 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     return -1;
   }
 
-  cur_vma->sbrk   += inc_sz;
-  cur_vma->vm_end  = cur_vma->sbrk;
+  // cur_vma->sbrk   += inc_sz;
+  // cur_vma->vm_end  = cur_vma->sbrk;
   *alloc_addr     = old_sbrk;
   caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
   caller->mm->symrgtbl[rgid].rg_end   = old_sbrk + size;

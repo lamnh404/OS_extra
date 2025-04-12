@@ -309,8 +309,8 @@ int init_mm(struct mm_struct *mm, struct pcb_t *caller)
   /* By default the owner comes with at least one vma */
   vma0->vm_id = 0;
   vma0->vm_start = 0;
-  vma0->vm_end = vma0->vm_start + PAGING_PAGESZ;
-  vma0->sbrk = vma0->vm_start + PAGING_PAGESZ;
+  vma0->vm_end = 0;
+  vma0->sbrk = 0;
   struct vm_rg_struct *first_rg = init_vm_rg(vma0->vm_start, vma0->vm_end);
   if (first_rg == NULL) {
     free(vma0);
