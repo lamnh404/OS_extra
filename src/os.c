@@ -186,7 +186,8 @@ static void read_config(const char * path) {
 		strcat(ld_processes.path[i], "input/proc/");
 		char proc[100];
 #ifdef MLQ_SCHED
-		fscanf(file, "%lu %s %lu\n", &ld_processes.start_time[i], proc, &ld_processes.prio[i]);
+		fscanf(file, "%lu %s %lu\r\n", &ld_processes.start_time[i], proc, &ld_processes.prio[i]);
+		// printf("This is the process number %d: %s, it has start_time %lu and priority %lu\n", i, proc, ld_processes.start_time[i], ld_processes.prio[i]);
 #else
 		fscanf(file, "%lu %s\n", &ld_processes.start_time[i], proc);
 #endif
@@ -271,6 +272,3 @@ int main(int argc, char * argv[]) {
 	return 0;
 
 }
-
-
-

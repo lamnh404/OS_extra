@@ -171,3 +171,96 @@ void dump(void) {
 }
 
 
+// #include "mem.h"
+// #include "stdlib.h"
+// #include "string.h"
+// #include <pthread.h>
+// #include <stdio.h>
+
+// #define FIRST_LEVEL_ENTRIES  (1 << (32 - (OFFSET_LEN + PAGE_LEN)))
+// #define SECOND_LEVEL_ENTRIES (1 << PAGE_LEN)
+
+// static BYTE _ram[RAM_SIZE];
+// static pthread_mutex_t mem_lock;
+
+// /* Initialize the physical memory and lock */
+// void init_mem(void) {
+//     memset(_ram, 0, sizeof(_ram));
+//     pthread_mutex_init(&mem_lock, NULL);
+// }
+
+// /* Get offset portion of address */
+// static addr_t get_offset(addr_t addr) {
+//     return addr & ((1 << OFFSET_LEN) - 1);
+// }
+
+// /* Get first-level index */
+// static addr_t get_first_lv(addr_t addr) {
+//     return addr >> (OFFSET_LEN + PAGE_LEN);
+// }
+
+// /* Get second-level index */
+// static addr_t get_second_lv(addr_t addr) {
+//     return (addr >> OFFSET_LEN) & ((1 << PAGE_LEN) - 1);
+// }
+
+// /* A minimal translation function assuming a pre-initialized page table */
+// static int translate(addr_t virtual_addr, addr_t *physical_addr, struct pcb_t *proc) {
+//     addr_t first = get_first_lv(virtual_addr);
+//     addr_t second = get_second_lv(virtual_addr);
+//     addr_t offset = get_offset(virtual_addr);
+    
+//     if (first >= proc->page_table->size)
+//          return 0;
+         
+//     /* For this example, assume the first level holds pointers to second-level arrays. */
+//     struct trans_table_t *tt = &(proc->page_table->table[first]);
+//     for (int i = 0; i < tt->size; i++) {
+//          if (tt->table[i].v_index == second) {
+//               *physical_addr = (tt->table[i].p_index << OFFSET_LEN) | offset;
+//               return 1;
+//          }
+//     }
+//     return 0;
+// }
+
+// /* Allocate memory: update break pointer and (in a full implementation)
+//    update the page table accordingly */
+// addr_t alloc_mem(uint32_t size, struct pcb_t *proc) {
+//     pthread_mutex_lock(&mem_lock);
+//     addr_t ret_mem = proc->bp;
+//     uint32_t num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+//     proc->bp += num_pages * PAGE_SIZE;
+//     pthread_mutex_unlock(&mem_lock);
+//     return ret_mem;
+// }
+
+// int free_mem(addr_t address, struct pcb_t *proc) {
+//     /* Not implemented in this minimal version. */
+//     return 0;
+// }
+
+// int read_mem(addr_t address, struct pcb_t *proc, BYTE *data) {
+//     addr_t paddr;
+//     if (translate(address, &paddr, proc)) {
+//          *data = _ram[paddr];
+//          return 0;
+//     }
+//     return 1;
+// }
+
+// int write_mem(addr_t address, struct pcb_t *proc, BYTE data) {
+//     addr_t paddr;
+//     if (translate(address, &paddr, proc)) {
+//          _ram[paddr] = data;
+//          return 0;
+//     }
+//     return 1;
+// }
+
+// void dump(void) {
+//     for (int i = 0; i < RAM_SIZE; i++) {
+//          if (_ram[i] != 0)
+//               printf("Address %08x: %02x\n", i, _ram[i]);
+//     }
+// }

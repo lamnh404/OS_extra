@@ -1,7 +1,10 @@
 // #ifdef MM_PAGING
-/*
- * PAGING based Memory Management
- * Virtual memory module mm/mm-vm.c
+/**
+ * @file mm-vm.c
+ * @brief Paging-based Virtual Memory Management.
+ *
+ * This module implements virtual memory management functions for a paging
+ * system. It includes functions to locate and extend VM areas and to swap pages.
  */
 
 #include "string.h"
@@ -10,107 +13,159 @@
 #include <stdio.h>
 #include <pthread.h>
 
-/*get_vma_by_num - get vm area by numID
- *@mm: memory region
- *@vmaid: ID vm area to alloc memory region
+/**
+ * get_vma_by_num - Retrieve a vm_area_struct by its numeric ID.
+ * @mm: Pointer to the memory management structure.
+ * @vmaid: The requested VM area ID.
  *
+ * Returns a pointer to the VM area if found, or NULL otherwise.
  */
 struct vm_area_struct *get_vma_by_num(struct mm_struct *mm, int vmaid)
 {
   struct vm_area_struct *pvma = mm->mmap;
-
-  if (mm->mmap == NULL)
+  if (pvma == NULL)
     return NULL;
 
-  int vmait = pvma->vm_id;
-
-  while (vmait < vmaid)
-  {
-    if (pvma == NULL)
-      return NULL;
-
+  /* Traverse until we find an area whose vm_id is >= vmaid */
+  while (pvma != NULL && pvma->vm_id < vmaid) {
     pvma = pvma->vm_next;
-    vmait = pvma->vm_id;
   }
-
   return pvma;
+}
+
+/**
+ * get_vm_area_node_at_brk - Allocate a new VM region node at the current break.
+ * @caller: Pointer to the calling process's control block.
+ * @vmaid: The VM area ID where memory will be allocated.
+ * @size: Requested allocation size (in bytes).
+ * @alignedsz: The allocation size after page alignment.
+ *
+ * Returns a pointer to a freshly allocated vm_rg_struct or NULL on failure.
+ */
+struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, int size, int alignedsz)
+{
+  struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
+  if (cur_vma == NULL)
+    return NULL;
+  
+  struct vm_rg_struct *newrg = malloc(sizeof(struct vm_rg_struct));
+  if (newrg == NULL)
+    return NULL;
+  
+  newrg->rg_start = cur_vma->sbrk;
+  newrg->rg_end   = cur_vma->sbrk + alignedsz;
+  newrg->rg_next  = NULL;
+  return newrg;
 }
 
 int __mm_swap_page(struct pcb_t *caller, int vicfpn , int swpfpn)
 {
-    __swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
-    return 0;
+  __swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
+  return 0;
 }
 
-/*get_vm_area_node - get vm area for a number of pages
- *@caller: caller
- *@vmaid: ID vm area to alloc memory region
- *@incpgnum: number of page
- *@vmastart: vma end
- *@vmaend: vma end
+/**
+ * validate_overlap_vm_area - Check that a memory region does not overlap.
+ * @caller: Pointer to the calling process's control block.
+ * @vmaid: The target VM area ID.
+ * @vmastart: Proposed start address.
+ * @vmaend: Proposed end address.
  *
- */
-struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, int size, int alignedsz)
-{
-  struct vm_rg_struct * newrg;
-  /* TODO retrive current vma to obtain newrg, current comment out due to compiler redundant warning*/
-  //struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
-
-  newrg = malloc(sizeof(struct vm_rg_struct));
-
-  /* TODO: update the newrg boundary
-  // newrg->rg_start = ...
-  // newrg->rg_end = ...
-  */
-
-  return newrg;
-}
-
-/*validate_overlap_vm_area
- *@caller: caller
- *@vmaid: ID vm area to alloc memory region
- *@vmastart: vma end
- *@vmaend: vma end
- *
+ * Returns 0 if there is no overlap; otherwise, -1.
  */
 int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int vmaend)
 {
-  //struct vm_area_struct *vma = caller->mm->mmap;
-
-  /* TODO validate the planned memory area is not overlapped */
-
+  struct vm_area_struct *vma = caller->mm->mmap;
+  while (vma != NULL) {
+    if (vma->vm_id != vmaid) {
+      // if (!(vmaend <= vma->vm_start || vmastart >= vma->vm_end))
+      if (!(vmaend < vma->vm_start || vmastart > vma->vm_end))
+      return -1; /* Overlap detected */
+    }
+    vma = vma->vm_next;
+  }
   return 0;
 }
 
-/*inc_vma_limit - increase vm area limits to reserve space for new variable
- *@caller: caller
- *@vmaid: ID vm area to alloc memory region
- *@inc_sz: increment size
+/**
+ * inc_vma_limit - Extend the VM area limit.
+ * @caller: Pointer to the calling process's control block.
+ * @vmaid: VM area ID to extend.
+ * @inc_sz: Size to increase by (in bytes).
  *
+ * Returns 0 on success, or -1 on failure.
  */
 int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
 {
-  struct vm_rg_struct * newrg = malloc(sizeof(struct vm_rg_struct));
-  int inc_amt = PAGING_PAGE_ALIGNSZ(inc_sz);
-  int incnumpage =  inc_amt / PAGING_PAGESZ;
-  struct vm_rg_struct *area = get_vm_area_node_at_brk(caller, vmaid, inc_sz, inc_amt);
-  struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
-
-  int old_end = cur_vma->vm_end;
-
-  /*Validate overlap of obtained region */
-  if (validate_overlap_vm_area(caller, vmaid, area->rg_start, area->rg_end) < 0)
-    return -1; /*Overlap and failed allocation */
-
-  /* TODO: Obtain the new vm area based on vmaid */
-  //cur_vma->vm_end... 
-  // inc_limit_ret...
-
-  if (vm_map_ram(caller, area->rg_start, area->rg_end, 
-                    old_end, incnumpage , newrg) < 0)
-    return -1; /* Map the memory to MEMRAM */
-
-  return 0;
+    struct vm_rg_struct *newrg = malloc(sizeof(struct vm_rg_struct));
+    if (!newrg)
+      return -1;
+    
+    int inc_amt = PAGING_PAGE_ALIGNSZ(inc_sz);
+    int incnumpage = inc_amt / PAGING_PAGESZ;
+    struct vm_rg_struct *area = get_vm_area_node_at_brk(caller, vmaid, inc_sz, inc_amt);
+    if (area == NULL) {
+      free(newrg);
+      return -1;
+    }
+    
+    struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
+    if (cur_vma == NULL) {
+      free(newrg);
+      free(area);
+      return -1;
+    }
+    
+    int old_end = cur_vma->vm_end;
+    if (validate_overlap_vm_area(caller, vmaid, area->rg_start, area->rg_end) < 0) {
+      free(newrg);
+      free(area);
+      return -1;
+    }
+    
+    cur_vma->vm_end = area->rg_end;
+    cur_vma->sbrk  = area->rg_end;
+    
+    if (vm_map_ram(caller, area->rg_start, area->rg_end, old_end, incnumpage, newrg) < 0) {
+      free(newrg);
+      free(area);
+      return -1;
+    }
+    
+    free(area);
+    return 0;
 }
+// int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
+// {
+//   int inc_amt = PAGING_PAGE_ALIGNSZ(inc_sz);
+//   int incnumpage = inc_amt / PAGING_PAGESZ;
+//   struct vm_rg_struct *area = get_vm_area_node_at_brk(caller, vmaid, inc_sz, inc_amt);
+//   if (area == NULL) {
+//     return -1;
+//   }
+  
+//   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
+//   if (cur_vma == NULL) {
+//     free(area);
+//     return -1;
+//   }
+  
+//   int old_end = cur_vma->vm_end;
+//   if (validate_overlap_vm_area(caller, vmaid, area->rg_start, area->rg_end) < 0) {
+//     free(area);
+//     return -1;
+//   }
+  
+//   cur_vma->vm_end = area->rg_end;
+//   cur_vma->sbrk  = area->rg_end;
+  
+//   // Pass 'area' to vm_map_ram instead of an uninitialized 'newrg'
+//   if (vm_map_ram(caller, area->rg_start, area->rg_end, old_end, incnumpage, area) < 0) {
+//     free(area);
+//     return -1;
+//   }
+  
+//   return 0;
+// }
 
-// #endif
+// #endif  // MM_PAGING
