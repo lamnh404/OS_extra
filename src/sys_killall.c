@@ -18,7 +18,6 @@
 
 int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
 {
-    printf("sys_killall syscall\n");
     char proc_name[100];
     BYTE data;
 
@@ -30,35 +29,31 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
     while(data != -1){
         int tmp = i;
         libread(caller, memrg, i, &data);
-        i = tmp;
-        proc_name[i] = (char)data;
+        i = tmp; //how and why
+        proc_name[i] = data;
         if(data == -1) proc_name[i] = '\0';
         i++;
     }
     printf("The procname retrieved from memregionid %d is \"%s\"\n", memrg, proc_name);
-    /* TODO: Traverse proclist to terminate the proc
-     *       stcmp to check the process match proc_name
-     */
-    int terminated = 0;
-    //caller->mlq_ready_queu
 
-    /* TODO Maching and terminating 
-     *       all processes with given
-     *        name in var proc_name
-     */
+    // running_list
     if (caller->running_list != NULL) {
         struct queue_t *q = caller->running_list;
         int write_idx = 0;
         for (int read_idx = 0; read_idx < q->size; read_idx++) {
-            // if (q->proc[read_idx] != NULL && strcmp(q->proc[read_idx]->path, proc_name) == 0) {
-            if (1) {
-                // Terminate the process
-                free_pcb_memph(q->proc[read_idx]);
-                free(q->proc[read_idx]);
+            char temp_name[100];
+            BYTE* storage = q->proc[read_idx]->mram->storage;
+            int j = 0;
+            while (storage[j] != -1 && storage[j] != '\0') {
+                temp_name[j] = storage[j];
+                j++;
+            }
+            temp_name[j] = '\0';
+            if (q->proc[read_idx] != NULL && strcmp(temp_name, proc_name) == 0) {
+                // free_pcb_memph(q->proc[read_idx]); //nothing happen
+                q->proc[read_idx]->pc = q->proc[read_idx]->code->size;
                 q->proc[read_idx] = NULL;
-                terminated++;
             } else {
-                // Keep the process in the queue
                 if (read_idx != write_idx) {
                     q->proc[write_idx] = q->proc[read_idx];
                     q->proc[read_idx] = NULL;
@@ -73,14 +68,19 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
         struct queue_t *q = caller->mlq_ready_queue;
         int write_idx = 0;
         for (int read_idx = 0; read_idx < q->size; read_idx++) {
-            if (q->proc[read_idx] != NULL && strcmp(q->proc[read_idx]->path, proc_name) == 0) {
-                // Terminate the process
-                free_pcb_memph(q->proc[read_idx]);
-                free(q->proc[read_idx]);
+            char temp_name[100];
+            BYTE* storage = q->proc[read_idx]->mram->storage;
+            int j = 0;
+            while (storage[j] != -1 && storage[j] != '\0') {
+                temp_name[j] = storage[j];
+                j++;
+            }
+            temp_name[j] = '\0';
+            if (q->proc[read_idx] != NULL && strcmp(temp_name, proc_name) == 0) {
+                // free_pcb_memph(q->proc[read_idx]); (not working)
+                free(q->proc[read_idx]); //khong biet co free duoc khong, chua test
                 q->proc[read_idx] = NULL;
-                terminated++;
             } else {
-                // Keep the process in the queue
                 if (read_idx != write_idx) {
                     q->proc[write_idx] = q->proc[read_idx];
                     q->proc[read_idx] = NULL;
@@ -90,6 +90,5 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
         }
         q->size = write_idx;
     }
-    printf("Terminated %d processes with name \"%s\"\n", terminated, proc_name);
     return 0; 
 }
