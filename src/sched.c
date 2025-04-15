@@ -121,6 +121,7 @@ void put_proc(struct pcb_t *proc)
 	dequeue(&run_queue);
 	enqueue(&run_queue, proc);
 	pthread_mutex_unlock(&queue_lock);
+	proc->running_list = &run_queue; //temp
 }
 
 void add_proc(struct pcb_t *proc)
@@ -135,6 +136,7 @@ void add_proc(struct pcb_t *proc)
 	pthread_mutex_lock(&queue_lock);
 	enqueue(&ready_queue, proc);
 	pthread_mutex_unlock(&queue_lock);
+	proc->running_list = &run_queue; //temp
 }
 #else
 struct pcb_t *get_proc(void)
