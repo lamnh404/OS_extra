@@ -7,7 +7,8 @@
  * personal permission to use and modify the Licensed Source Code
  * for the sole purpose of studying while attending the course CO2018.
  */
-
+#ifndef __LIBMEM_H__
+#define __LIBMEM_H__
 #include "common.h"
 
 #define SYSMEM_MAP_OP 1
@@ -23,3 +24,4 @@ int liballoc(struct pcb_t *, uint32_t, uint32_t);
 int libfree(struct pcb_t *, uint32_t);
 int libread(struct pcb_t*, uint32_t, uint32_t, uint32_t*);
 int libwrite(struct pcb_t*, BYTE, uint32_t, uint32_t);
+#endif /* __LIBMEM_H__ */

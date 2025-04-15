@@ -1,3 +1,5 @@
+#ifndef BITOPS_H
+#define BITOPS_H
 #ifdef CONFIG_64BIT
 #define BITS_PER_LONG 64
 #else
@@ -35,3 +37,4 @@
 #define NBITS(n) (n==0?0:NBITS32(n))
 
 #define EXTRACT_NBITS(nr, h, l) ((nr&GENMASK(h,l)) >> l)
+#endif

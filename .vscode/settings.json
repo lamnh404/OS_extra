@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "mm.h": "c"
+        "*.rmd": "markdown",
+        "mm.h": "c",
+        "syscall.h": "c",
+        "pthread.h": "c"
     }
 }

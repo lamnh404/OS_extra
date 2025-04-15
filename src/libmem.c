@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include "../include/syscall.h"
 
 /* Global mutex to ensure thread-safe modifications of VM structures. */
 static pthread_mutex_t mmvm_lock = PTHREAD_MUTEX_INITIALIZER;
