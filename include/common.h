@@ -14,9 +14,9 @@
 #include "os-mm.h"
 #endif
 
-#ifndef MM_FIXED_MEMSZ
-#define MM_FIXED_MEMSZ
-#endif
+// #ifndef MM_FIXED_MEMSZ
+// #define MM_FIXED_MEMSZ
+// #endif
 
 #define DEBUG_PRINT
 

@@ -163,7 +163,7 @@ static void read_config(const char * path) {
 	for(sit = 1; sit < PAGING_MAX_MMSWP; sit++)
 		memswpsz[sit] = 0;
 #else
-	/* Read input config of memory size: MEMRAM and upto 4 MEMSWP (mem swap)
+	/* Read input config of memory size: MEMRAM and upto 4 MEMScWP (mem swap)
 	 * Format: (size=0 result non-used memswap, must have RAM and at least 1 SWAP)
 	 *        MEM_RAM_SZ MEM_SWP0_SZ MEM_SWP1_SZ MEM_SWP2_SZ MEM_SWP3_SZ
 	*/
