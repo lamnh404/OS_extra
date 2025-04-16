@@ -19,7 +19,7 @@
 int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
 {
     char proc_name[100];
-    BYTE data;
+    uint32_t data;
 
     //hardcode for demo only
     uint32_t memrg = regs->a3;
@@ -27,9 +27,9 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
     int i = 0;
     data = 0;
     while(data != -1){
-        int tmp = i;
+        // int tmp = i;
         libread(caller, memrg, i, &data);
-        i = tmp; //how and why
+        // i = tmp; //how and why
         proc_name[i] = data;
         if(data == -1) proc_name[i] = '\0';
         i++;

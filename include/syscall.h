@@ -7,7 +7,8 @@
  * personal permission to use and modify the Licensed Source Code
  * for the sole purpose of studying while attending the course CO2018.
  */
-
+#ifndef __SYSCALL_H__
+#define __SYSCALL_H__
 #include "common.h"
 
 struct sc_regs {
@@ -37,4 +38,5 @@ extern const int syscall_table_size;
 int syscall(struct pcb_t*, uint32_t, struct sc_regs*);
 int libsyscall(struct pcb_t*, uint32_t, uint32_t, uint32_t, uint32_t);
 int __sys_ni_syscall(struct pcb_t*, struct sc_regs*);
-
+int __sys_memmap(struct pcb_t*, struct sc_regs*);
+#endif /* __SYSCALL_H__ */
