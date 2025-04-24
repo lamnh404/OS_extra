@@ -1,6 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
-
+#define CFS_SCHED
 /* Define structs and routine could be used by every source files */
 
 #include <stdint.h>
@@ -95,6 +95,12 @@ struct pcb_t
 	// Priority on execution (if supported), on-fly aka. changeable
 	// and this vale overwrites the default priority when it existed
 	uint32_t prio;
+#endif
+#ifdef CFS_SCHED
+    struct {
+        uint64_t vruntime;
+        uint32_t weight;
+    } cfs_ent;
 #endif
 #ifdef MM_PAGING
 	struct mm_struct *mm;
