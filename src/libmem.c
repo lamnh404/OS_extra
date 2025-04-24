@@ -28,6 +28,10 @@ static pthread_mutex_t mmvm_lock = PTHREAD_MUTEX_INITIALIZER;
 *
 * Returns 0 on success or -1 if the region is invalid.
 */
+
+/**
+ * Enlist for merge freerg_list
+ */
 int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt)
 {
     struct vm_rg_struct **pp = &mm->mmap->vm_freerg_list;
@@ -89,66 +93,36 @@ struct vm_rg_struct *get_symrg_byid(struct mm_struct *mm, int rgid)
 *
 * Returns 0 on success, or -1 on failure.
 */
-int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr)
+int __alloc(struct pcb_t *caller,
+            int vmaid,
+            int rgid,
+            int size,
+            int *alloc_addr)
 {
-  pthread_mutex_lock(&mmvm_lock);
+    pthread_mutex_lock(&mmvm_lock);
 
-  /* Try to obtain a free VM region */
-  struct vm_rg_struct rgnode;
-  // struct vm_area_struct rgnode;
-  if (get_free_vmrg_area(caller, vmaid, size, &rgnode) == 0) {
-    caller->mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
-    caller->mm->symrgtbl[rgid].rg_end   = rgnode.rg_end;
-    *alloc_addr = rgnode.rg_start;
+    struct vm_rg_struct rgnode;
+    if (get_free_vmrg_area(caller, vmaid, size, &rgnode) == 0) {
+        caller->mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
+        caller->mm->symrgtbl[rgid].rg_end   = rgnode.rg_end;
+        *alloc_addr                         = rgnode.rg_start;
 
 #ifdef DEBUG_PRINT
-    printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
-    printf("PID=%d - Region=%d - Address=%08x - Size=%d byte\n",
-            caller->pid, rgid, rgnode.rg_start, size);
-    print_pgtbl(caller, 0, caller->mm->mmap->vm_end);
-    printf("================================================================\n");
+        printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
+        printf("PID=%d - Region=%d - Address=%08x - Size=%d byte\n",
+               caller->pid, rgid, rgnode.rg_start, size);
+        print_pgtbl(caller, 0, caller->mm->mmap->vm_end);
+        printf("================================================================\n");
 #endif
 
-    pthread_mutex_unlock(&mmvm_lock);
-    return 0;
-  }
+        pthread_mutex_unlock(&mmvm_lock);
+        return 0;
+    }
 
-  /* No free region available; extend the VM area via syscall. */
-  struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
-  if (cur_vma == NULL) {
     pthread_mutex_unlock(&mmvm_lock);
     return -1;
-  }
-  int inc_sz = PAGING_PAGE_ALIGNSZ(size);
-  int old_sbrk = cur_vma->sbrk;
-
-  struct sc_regs regs;
-  regs.a1 = SYSMEM_INC_OP;
-  regs.a2 = vmaid;
-  regs.a3 = inc_sz;
-
-  if (__sys_memmap(caller, &regs) != 0) {
-    pthread_mutex_unlock(&mmvm_lock);
-    return -1;
-  }
-
-  // cur_vma->sbrk   += inc_sz;
-  // cur_vma->vm_end  = cur_vma->sbrk;
-  *alloc_addr     = old_sbrk;
-  caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
-  caller->mm->symrgtbl[rgid].rg_end   = old_sbrk + size;
-
-#ifdef DEBUG_PRINT
-  printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
-  printf("PID=%d - Region=%d - Address=%08x - Size=%d byte\n",
-        caller->pid, rgid, old_sbrk, size);
-  print_pgtbl(caller, 0, cur_vma->vm_end);
-  printf("================================================================\n");
-#endif
-
-  pthread_mutex_unlock(&mmvm_lock);
-  return 0;
 }
+
 
 /**
 * __free - Free an allocated memory region.
@@ -525,34 +499,118 @@ int find_victim_page(struct mm_struct *mm, int *retpgn)
 *
 * Returns 0 if a suitable region is found, or -1 otherwise.
 */
-int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_struct *newrg)
+// int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_struct *newrg)
+// {
+//   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
+//   if (cur_vma == NULL)
+//     return -1;
+
+//   struct vm_rg_struct *rgit = cur_vma->vm_freerg_list;
+//   if (rgit == NULL)
+//     return -1;
+
+//   newrg->rg_start = newrg->rg_end = -1;
+//   while (rgit != NULL) {
+//     int rg_size = rgit->rg_end - rgit->rg_start;
+//     if (rg_size >= size) {
+//       newrg->rg_start = rgit->rg_start;
+//       newrg->rg_end   = rgit->rg_start + size;
+
+//       if (rg_size > size) {
+//         rgit->rg_start += size;
+//       } else {
+//         cur_vma->vm_freerg_list = rgit->rg_next;
+//         free(rgit);
+//       }
+//       return 0;
+//     }
+//     rgit = rgit->rg_next;
+//   }
+
+//   return -1;
+// }
+
+int get_free_vmrg_area(struct pcb_t *caller,
+                       int vmaid,
+                       int size,
+                       struct vm_rg_struct *newrg)
 {
-  struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
-  if (cur_vma == NULL)
-    return -1;
+    struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
+    if (!cur_vma)
+        return -1;
 
-  struct vm_rg_struct *rgit = cur_vma->vm_freerg_list;
-  if (rgit == NULL)
-    return -1;
+    int expanded = 0;
+    int  old_end  = cur_vma->vm_end;
 
-  newrg->rg_start = newrg->rg_end = -1;
-  while (rgit != NULL) {
-    int rg_size = rgit->rg_end - rgit->rg_start;
-    if (rg_size >= size) {
-      newrg->rg_start = rgit->rg_start;
-      newrg->rg_end   = rgit->rg_start + size;
+retry_search:
+    struct vm_rg_struct **best_prev = NULL;
+    struct vm_rg_struct  *best      = NULL;
+    int                   best_diff = INT_MAX;
+    int                   tail_free = 0;
 
-      if (rg_size > size) {
-        rgit->rg_start += size;
-      } else {
-        /* Remove the node from the free list */
-        cur_vma->vm_freerg_list = rgit->rg_next;
-        free(rgit);
-      }
-      return 0;
+    struct vm_rg_struct **pp  = &cur_vma->vm_freerg_list;
+    struct vm_rg_struct  *cur = cur_vma->vm_freerg_list;
+    while (cur) {
+        int region_size = cur->rg_end - cur->rg_start;
+        int diff = region_size - size;
+
+        if (diff >= 0 && diff < best_diff) {
+            best_diff = diff;
+            best      = cur;
+            best_prev = pp;
+            if (diff == 0)
+                break; 
+        }
+
+        if (!expanded && cur->rg_end == old_end) {
+            tail_free = region_size;
+        }
+
+        pp  = &cur->rg_next;
+        cur =  cur->rg_next;
     }
-    rgit = rgit->rg_next;
-  }
 
-  return -1; // No suitable region found
+    if (best) {
+        newrg->rg_start = best->rg_start;
+        newrg->rg_end   = best->rg_start + size;
+
+        if (best_diff > 0) {
+            /* shrink front of the free region */
+            best->rg_start += size;
+        } else {
+            /* exact fit: remove the node */
+            *best_prev = best->rg_next;
+            free(best);
+        }
+        return 0;
+    }
+
+    /* No best‐fit yet: expand once, then retry */
+    if (!expanded) {
+        int needed = size - tail_free;
+
+        struct sc_regs regs;
+        regs.a1 = SYSMEM_INC_OP;
+        regs.a2 = vmaid;
+        regs.a3 = needed;
+
+        if (__sys_memmap(caller, &regs) != 0) {
+          pthread_mutex_unlock(&mmvm_lock);
+          return -1;
+        }
+
+        struct vm_rg_struct *added = malloc(sizeof(*added));
+        if (!added)
+            return -1;
+
+        added->rg_start = old_end;
+        added->rg_end   = cur_vma->vm_end;
+        added->rg_next  = NULL;
+        enlist_vm_freerg_list(caller->mm, added);
+
+        expanded = 1;
+        goto retry_search;
+    }
+
+    return -1;
 }
