@@ -1,8 +1,10 @@
 {
     "files.associations": {
-        "*.rmd": "markdown",
-        "mm.h": "c",
-        "syscall.h": "c",
-        "pthread.h": "c"
+        "string.h": "c",
+        "common.h": "c",
+        "libmem.h": "c",
+        "cpu.h": "c",
+        "timer.h": "c",
+        "red_black_tree.h": "c"
     }
 }
