@@ -9,6 +9,13 @@
 
 #define MAX_PRIO 140
 
+
+
+#ifndef CFS_SCHED
+#define CFS_SCHED
+#endif
+
+
 int queue_empty(void);
 
 void init_scheduler(void);

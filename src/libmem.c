@@ -30,12 +30,36 @@ static pthread_mutex_t mmvm_lock = PTHREAD_MUTEX_INITIALIZER;
 */
 int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt)
 {
-  if (rg_elmt->rg_start >= rg_elmt->rg_end)
-    return -1;
-  rg_elmt->rg_next = mm->mmap->vm_freerg_list;
-  mm->mmap->vm_freerg_list = rg_elmt;
-  return 0;
+    struct vm_rg_struct **pp = &mm->mmap->vm_freerg_list;
+    struct vm_rg_struct  *cur = mm->mmap->vm_freerg_list;
+
+    if (rg_elmt->rg_start >= rg_elmt->rg_end)
+        return -1;
+
+    while (cur && cur->rg_start < rg_elmt->rg_start) {
+        pp  = &cur->rg_next;
+        cur =  cur->rg_next;
+    }
+
+    rg_elmt->rg_next = cur;
+    *pp               = rg_elmt;
+
+    struct vm_rg_struct *iter = mm->mmap->vm_freerg_list;
+    while (iter && iter->rg_next) {
+        if (iter->rg_end >= iter->rg_next->rg_start) {
+            if (iter->rg_end < iter->rg_next->rg_end) {
+                iter->rg_end = iter->rg_next->rg_end;
+            }
+            struct vm_rg_struct *tmp = iter->rg_next;
+            iter->rg_next = tmp->rg_next;
+        } else {
+            iter = iter->rg_next;
+        }
+    }
+
+    return 0;
 }
+
 
 /**
 * get_symrg_byid - Retrieves a symbol region from the region table.

@@ -3,6 +3,11 @@
         "*.rmd": "markdown",
         "mm.h": "c",
         "syscall.h": "c",
-        "pthread.h": "c"
-    }
+        "pthread.h": "c",
+        "stdlib.h": "c",
+        "rbtree.h": "c",
+        "compare": "c",
+        "common.h": "c"
+    },
+    "C_Cpp.dimInactiveRegions": false
 }
