@@ -11,9 +11,12 @@ static int cfs_cmp(void *a, void *b) {
     struct pcb_t *p2 = (struct pcb_t*)b;
     uint64_t v1 = p1->cfs_ent.vruntime;
     uint64_t v2 = p2->cfs_ent.vruntime;
-    return (v1 < v2 ? -1 : v1 > v2 ? 1 : 0);
+    if (v1 < v2) return -1;
+    if (v1 > v2) return 1;
+    if (p1->pid < p2->pid) return -1;
+    if (p1->pid > p2->pid) return 1;
+    return 0;
 }
-
 static struct pcb_t *cfs_tree_min(void) {
     RBNode *node = cfs_rq.tree->root;
     if (!node) return NULL;
