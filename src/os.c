@@ -147,6 +147,12 @@ static void read_config(const char * path) {
 		exit(1);
 	}
 	fscanf(file, "%d %d %d\n", &time_slot, &num_cpus, &num_processes);
+	if (num_cpus > num_processes) {
+		printf("Number of CPUs (%d) is greater than number of processes (%d)\n",
+			num_cpus, num_processes);
+		printf("Automatically set number of CPUs to %d\n", num_processes);
+		num_cpus = num_processes;
+	}
 	ld_processes.path = (char**)malloc(sizeof(char*) * num_processes);
 	ld_processes.start_time = (unsigned long*)
 		malloc(sizeof(unsigned long) * num_processes);

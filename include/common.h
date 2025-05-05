@@ -18,7 +18,7 @@
 // #define MM_FIXED_MEMSZ
 // #endif
 
-#define DEBUG_PRINT
+// #define DEBUG_PRINT
 
 #define ADDRESS_SIZE 20
 #define OFFSET_LEN 10

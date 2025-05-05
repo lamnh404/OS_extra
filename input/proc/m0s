@@ -1,6 +1,13 @@
-1 5
+1 12
 alloc 300 0
 alloc 100 1
 alloc 300 2
 free 1
 alloc 120 1
+alloc 300 10
+alloc 300 9
+alloc 300 8
+alloc 300 7
+alloc 300 6
+alloc 111 3
+alloc 222 3
