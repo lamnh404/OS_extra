@@ -2,18 +2,18 @@
 #define QUEUE_H
 
 #include "common.h"
-
-#ifndef MLQ_SCHED
-#define MLQ_SCHED
-#endif
+#include "cfs.h"
+// #ifndef MLQ_SCHED
+// #define MLQ_SCHED
+// #endif
 
 #define MAX_PRIO 140
 
 
 
-#ifndef CFS_SCHED
-#define CFS_SCHED
-#endif
+// #ifndef CFS_SCHED
+// #define CFS_SCHED
+// #endif
 
 
 int queue_empty(void);

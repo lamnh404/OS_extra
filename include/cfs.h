@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include "rbtree.h"
 #include "common.h"
+#include "timer.h"    
+
 #ifndef CFS_SCHED
 #define CFS_SCHED
 #endif

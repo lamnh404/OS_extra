@@ -62,8 +62,8 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
         q->size = write_idx;
     }
 
-    if (caller->mlq_ready_queue != NULL) {
-        struct queue_t *q = caller->mlq_ready_queue;
+    if (caller->ready_queue != NULL) {
+        struct queue_t *q = caller->ready_queue;
         int write_idx = 0;
         for (int read_idx = 0; read_idx < q->size; read_idx++) {
             char temp_name[100];

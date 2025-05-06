@@ -5,22 +5,17 @@
             "label": "build-os",
             "type": "shell",
             "command": "make",
-            "args": [
-                "os"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
+            "args": [],
             "group": "build",
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Build the OS simulation using make"
+            "detail": "Generated task for building the OS project."
         },
         {
             "type": "cppbuild",
-            "label": "C/C++: gcc-13 build active file",
-            "command": "/usr/bin/gcc-13",
+            "label": "C/C++: gcc build active file",
+            "command": "/usr/bin/gcc",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",

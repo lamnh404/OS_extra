@@ -1,7 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
-#define CFS_SCHED
-/* Define structs and routine could be used by every source files */
+// #define MLQ_SCHED
+// /* Define structs and routine could be used by every source files */
 
 #include <stdint.h>
 #include <stdio.h>

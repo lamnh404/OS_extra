@@ -1,4 +1,3 @@
-
 #include "cpu.h"
 #include "timer.h"
 #include "sched.h"
@@ -32,7 +31,7 @@ struct mmpaging_ld_args {
 static struct ld_args{
 	char ** path;
 	unsigned long * start_time;
-#ifdef MLQ_SCHED
+#ifdef CFS_SCHED
 	unsigned long * prio;
 #endif
 } ld_processes;
@@ -64,7 +63,7 @@ static void * cpu_routine(void * args) {
 			/* The porcess has finish it job */
 			printf("\tCPU %d: Processed %2d has finished\n",
 				id ,proc->pid);
-			free(proc);
+			rbtree_delete(cfs_rq.tree, proc);
 			proc = get_proc();
 			time_left = 0;
 		}else if (time_left == 0) {
@@ -173,15 +172,15 @@ static void read_config(const char * path) {
 	 * Format: (size=0 result non-used memswap, must have RAM and at least 1 SWAP)
 	 *        MEM_RAM_SZ MEM_SWP0_SZ MEM_SWP1_SZ MEM_SWP2_SZ MEM_SWP3_SZ
 	*/
-	fscanf(file, "%d\n", &memramsz);
-	for(sit = 0; sit < PAGING_MAX_MMSWP; sit++)
-		fscanf(file, "%d", &(memswpsz[sit])); 
+	// fscanf(file, "%d\n", &memramsz);
+	// for(sit = 0; sit < PAGING_MAX_MMSWP; sit++)
+	// 	fscanf(file, "%d", &(memswpsz[sit])); 
 
        fscanf(file, "\n"); /* Final character */
 #endif
 #endif
 
-#ifdef MLQ_SCHED
+#ifdef CFS_SCHED
 	ld_processes.prio = (unsigned long*)
 		malloc(sizeof(unsigned long) * num_processes);
 #endif
@@ -191,7 +190,7 @@ static void read_config(const char * path) {
 		ld_processes.path[i][0] = '\0';
 		strcat(ld_processes.path[i], "input/proc/");
 		char proc[100];
-#ifdef MLQ_SCHED
+#ifdef CFS_SCHED
 		fscanf(file, "%lu %s %lu\r\n", &ld_processes.start_time[i], proc, &ld_processes.prio[i]);
 		// printf("This is the process number %d: %s, it has start_time %lu and priority %lu\n", i, proc, ld_processes.start_time[i], ld_processes.prio[i]);
 #else

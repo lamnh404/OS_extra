@@ -121,6 +121,8 @@ static void fix_delete(RBTree* tree, RBNode* x) {
 
 // Public delete: removes data if found
 void rbtree_delete(RBTree* tree, void* data) {
+    if (!tree) return;
+
     RBNode* z = tree->root;
     while (z && tree->cmpop(data, z->data) != 0)
         z = (tree->cmpop(data, z->data) < 0) ? z->left : z->right;
@@ -140,6 +142,7 @@ void rbtree_delete(RBTree* tree, void* data) {
         y = minimum(z->right);
         y_color = y->color;
         x = y->right;
+
         if (y->parent == z) {
             if (x) x->parent = y;
         } else {
@@ -147,6 +150,7 @@ void rbtree_delete(RBTree* tree, void* data) {
             y->right = z->right;
             if (y->right) y->right->parent = y;
         }
+
         transplant(tree, z, y);
         y->left = z->left;
         if (y->left) y->left->parent = y;
