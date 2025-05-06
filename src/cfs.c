@@ -20,7 +20,9 @@ static struct pcb_t *cfs_tree_min(void) {
     if (!node) return NULL;
     while (node->left)
         node = node->left;
-    return (struct pcb_t*)node->data;
+    struct pcb_t * temp=(struct pcb_t*)node->data;
+    cfs_dequeue((struct pcb_t*)node->data);
+    return temp;
 }
 
 void cfs_init_rq(void) {
@@ -36,17 +38,16 @@ uint32_t cfs_compute_weight(int nice) {
 }
 
 void cfs_enqueue(struct pcb_t *p) {
-    pthread_mutex_lock(&cfs_rq.rq_lock);
+
     rbtree_insert(cfs_rq.tree, p);
     cfs_rq.total_weight += p->cfs_ent.weight;
-    pthread_mutex_unlock(&cfs_rq.rq_lock);
+
 }
 
 void cfs_dequeue(struct pcb_t *p) {
-    pthread_mutex_lock(&cfs_rq.rq_lock);
+
     rbtree_delete(cfs_rq.tree, p);
     cfs_rq.total_weight -= p->cfs_ent.weight;
-    pthread_mutex_unlock(&cfs_rq.rq_lock);
 }
 
 struct pcb_t *cfs_pick_next(void) {

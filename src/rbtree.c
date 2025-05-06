@@ -157,9 +157,9 @@ void rbtree_delete(RBTree* tree, void* data) {
         y->color = z->color;
     }
 
-    if (tree->free_data)
-        tree->free_data(z->data);
-    free(z);
+    // if (tree->free_data)
+    //     tree->free_data(z->data);
+    // free(z);
     if (y_color == BLACK)
         fix_delete(tree, x);
 }
