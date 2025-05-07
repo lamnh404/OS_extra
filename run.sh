@@ -3,7 +3,7 @@
 CONFIG_FILE="include/os-cfg.h"
 OUTPUT_DIR="run_output"
 TESTCASES=(
-    "sched_0" "sched_1"
+    "sched_0" "sched_1" "sched"
     "os_0_mlq_paging" "os_1_mlq_paging"
     "os_1_singleCPU_mlq" "os_1_singleCPU_mlq_paging"
     "os_1_mlq_paging_small_1K" "os_1_mlq_paging_small_4K"
