@@ -101,6 +101,7 @@ struct pcb_t *get_mlq_proc(void)
     /*TODO: get a process from PRIORITY [ready_queue].
      * Remember to use lock to protect the queue.
      * */
+    pthread_mutex_lock(&queue_lock);
     struct pcb_t *proc = NULL;
     unsigned long prio;
     bool isEmpty = false;
@@ -132,6 +133,7 @@ struct pcb_t *get_mlq_proc(void)
             prio = -1;
         }
     }
+    pthread_mutex_unlock(&queue_lock);
     return proc;
 }
 #endif
@@ -158,7 +160,7 @@ struct pcb_t *get_proc(void) {
 }
 
 void add_proc(struct pcb_t *proc) {
-    pthread_mutex_lock(&queue_lock);
+
 #ifdef CFS_SCHED
     proc->cfs_ent.vruntime = 0;
     proc->cfs_ent.weight   = cfs_compute_weight(proc->cfs_ent.weight);
@@ -174,18 +176,20 @@ void add_proc(struct pcb_t *proc) {
 
     add_mlq_proc(proc);
 
+    pthread_mutex_lock(&queue_lock);
     enqueue(&ready_queue, proc);
+    pthread_mutex_unlock(&queue_lock);
 
     proc->running_list = &run_queue; //temp
 
 #else
     rr_add(proc);
 #endif
-    pthread_mutex_unlock(&queue_lock);
+
 }
 
 void put_proc(struct pcb_t *proc) {
-    pthread_mutex_lock(&queue_lock);
+
 #ifdef CFS_SCHED
     pthread_mutex_lock(&cfs_lock);
     cfs_enqueue(proc);
@@ -197,12 +201,13 @@ void put_proc(struct pcb_t *proc) {
 
     /* TODO: put running proc to running_list */
     put_mlq_proc(proc);
+    pthread_mutex_lock(&queue_lock);
     dequeue(&run_queue);
     enqueue(&run_queue, proc);
+    pthread_mutex_unlock(&queue_lock);
     proc->running_list = &run_queue; //temp
 
 #else
     rr_put(proc);
 #endif
-    pthread_mutex_unlock(&queue_lock);
 }
