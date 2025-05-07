@@ -1,0 +1,33 @@
+=== Demo Instructions ===
+
+Available Testcases: (/input folder)
+- sched_0
+- sched_1
+- os_0_mlq_paging
+- os_1_mlq_paging
+- os_1_singleCPU_mlq
+- os_1_singleCPU_mlq_paging
+- os_1_mlq_paging_small_1K
+- os_1_mlq_paging_small_4K
+
+USAGE:
+
+Make the script executable: chmod +x run.sh
+
+1. Run one testcase with CFS scheduling:
+   ./run.sh run <testcase> (Example: ./run.sh run sched)
+
+2. Run all testcases with CFS scheduling:
+   ./run.sh run all
+
+3. Compare one testcase in both CFS and MLQ:
+   ./run.sh compare <testcase>
+
+4. Compare all testcases:
+   ./run.sh compare all
+
+5. Clean all builds and outputs:
+   ./run.sh clean
+
+OUTPUT:
+- All logs are saved under `run_output/cfs/` and `run_output/mlq/`
