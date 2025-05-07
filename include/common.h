@@ -90,18 +90,18 @@ struct pcb_t
 	uint32_t pc;		 // Program pointer, point to the next instruction
 	struct queue_t *ready_queue;
 	struct queue_t *running_list;
-#ifdef MLQ_SCHED
+// #ifdef MLQ_SCHED
 	struct queue_t *mlq_ready_queue;
 	// Priority on execution (if supported), on-fly aka. changeable
 	// and this vale overwrites the default priority when it existed
 	uint32_t prio;
-#endif
-#ifdef CFS_SCHED
+// #endif
+// #ifdef CFS_SCHED
     struct {
         uint64_t vruntime;
         uint32_t weight;
     } cfs_ent;
-#endif
+// #endif
 #ifdef MM_PAGING
 	struct mm_struct *mm;
 	struct memphy_struct *mram;
