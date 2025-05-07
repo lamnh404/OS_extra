@@ -53,7 +53,8 @@ int init_pte(uint32_t *pte,
  */
 int pte_set_swap(uint32_t *pte, int swptyp, int swpoff)
 {
-  SETBIT(*pte, PAGING_PTE_PRESENT_MASK);
+  // SETBIT(*pte, PAGING_PTE_PRESENT_MASK);
+  CLRBIT(*pte, PAGING_PTE_PRESENT_MASK);
   SETBIT(*pte, PAGING_PTE_SWAPPED_MASK);
 
   SETVAL(*pte, swptyp, PAGING_PTE_SWPTYP_MASK, PAGING_PTE_SWPTYP_LOBIT);
@@ -91,10 +92,10 @@ int vmap_page_range(struct pcb_t *caller,           // process call
   int pgn = PAGING_PGN(addr);
 
   /* TODO: update the rg_end and rg_start of ret_rg */
-  ret_rg->rg_start = addr; 
-  ret_rg->rg_end = addr + pgnum * PAGING_PAGESZ;
+  ret_rg->rg_end = ret_rg->rg_start = addr;
+
   // ret_rg->vmaid = 0;
-  
+
 
   /* TODO map range of frame to address space
    *      [addr to addr + pgnum*PAGING_PAGESZ
@@ -104,11 +105,12 @@ int vmap_page_range(struct pcb_t *caller,           // process call
   for (pgit = 0; pgit < pgnum && fpit != NULL; pgit++) {
     int cur_pgn = pgn + pgit;
     pte_set_fpn(&caller->mm->pgd[cur_pgn], fpit->fpn);
+    enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
     fpit = fpit->fp_next;
   }
   /* Tracking for later page replacement activities (if needed)
    * Enqueue new usage page */
-  enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
+  ret_rg->rg_end = addr + pgnum * PAGING_PAGESZ;
 
   return 0;
 }
@@ -120,110 +122,54 @@ int vmap_page_range(struct pcb_t *caller,           // process call
  * @frm_lst   : frame list
  */
 
-// int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struct **frm_lst)
-// {
-//   int pgit, fpn;
-//   struct framephy_struct *newfp_str = NULL;
-//   struct framephy_struct *head = NULL, *tail = NULL;
-//   /* TODO: allocate the page 
-//   //caller-> ...
-//   //frm_lst-> ...
-//   */
-//   *frm_lst = NULL;
-//   for (pgit = 0; pgit < req_pgnum; pgit++)
-//   {
-//   /* TODO: allocate the page 
-//    */
-//     newfp_str = malloc(sizeof(struct framephy_struct));
-//     if (newfp_str == NULL)
-//     {
-//       while (head != NULL)
-//       {
-//         struct framephy_struct *temp = head;
-//         head = head->fp_next;
-//         free(temp);
-//       }
-//       return -1; // Memory allocation failed
-//     }
-//     if (MEMPHY_get_freefp(caller->mram, &fpn) == 0)
-//     {
-//       newfp_str->fpn = fpn;
-//       newfp_str->fp_next = NULL;
-//       if (head == NULL) {
-//         head = newfp_str;
-//         tail = newfp_str;
-//       }
-//       else
-//       {
-//         tail->fp_next = newfp_str;
-//         tail = newfp_str;
-//       }
-//     }
-//     else
-//     { // TODO: ERROR CODE of obtaining somes but not enough frames
-//       free(newfp_str);
-//       while (head != NULL)
-//       {
-//         struct framephy_struct *temp = head;
-//         head = head->fp_next;
-//         MEMPHY_put_freefp(caller->mram, temp->fpn);
-//         free(temp);
-//       }
-//       return -3000; // Out of memory
-//     }
-//   }
-//   *frm_lst = head;
-//   return 0;
-// }
-int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struct **frm_lst)
-{
-    int pgit, fpn;
-    struct framephy_struct *head = NULL, *tail = NULL;
-    *frm_lst = NULL;  // Khởi tạo danh sách trả về là rỗng
+ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struct **frm_lst) {
+  int pgit, fpn;
+  struct framephy_struct *newfp_str = NULL;
 
-    for (pgit = 0; pgit < req_pgnum; pgit++)
-    {
-        // Cố gắng lấy một frame từ MEMRAM
-        if (MEMPHY_get_freefp(caller->mram, &fpn) != 0) {
-            struct framephy_struct *tmp = head;
-            while (tmp) {
-                struct framephy_struct *next = tmp->fp_next;
-                free(tmp);
-                tmp = next;
-            }
-            *frm_lst = NULL;
-            return -3000;  // Mã lỗi: không đủ frame
-        }
-        
-        // Cấp phát một node mới cho frame vừa lấy
-        struct framephy_struct *node = malloc(sizeof(struct framephy_struct));
-        if (!node) {
-            // Trong trường hợp không cấp phát được bộ nhớ cho node, giải phóng các node đã tạo
-            struct framephy_struct *tmp = head;
-            while (tmp) {
-                struct framephy_struct *next = tmp->fp_next;
-                free(tmp);
-                tmp = next;
-            }
-            *frm_lst = NULL;
-            return -1;
-        }
-        node->fpn = fpn;
-        node->fp_next = NULL;
-        node->owner = caller->mm;
+  if ((caller->mram->maxsz / PAGING_PAGESZ) < req_pgnum) return -3000;
 
-        // Thêm node vào danh sách liên kết
-        if (head == NULL) {
-            head = node;
-            tail = node;
-        } else {
-            tail->fp_next = node;
-            tail = node;
-        }
+  for (pgit = 0; pgit < req_pgnum; pgit++) {
+    if (MEMPHY_get_freefp(caller->mram, &fpn) == 0) {
+      struct framephy_struct *newnode = malloc(sizeof(struct framephy_struct));
+      newnode->fpn = fpn;
+      newnode->owner = caller->mm;
+      newnode->fp_next = NULL;
+
+      if (newfp_str == NULL) {
+        newfp_str = newnode;
+      } else {
+        struct framephy_struct *temp = newfp_str;
+        while (temp->fp_next != NULL) temp = temp->fp_next;
+        temp->fp_next = newnode;
+      }
+    } else {
+      int swpfpn;
+      uint32_t *vicpte;
+      int vicpgn;
+
+      if (MEMPHY_get_freefp(caller->active_mswp, &swpfpn) < 0) return -3000;
+      if (find_victim_page(caller->mm, &vicpgn) < 0) return -3000;
+      vicpte = &caller->mm->pgd[vicpgn];
+      int vicfpn = GETVAL(*vicpte, PAGING_PTE_FPN_MASK, PAGING_PTE_FPN_LOBIT);
+      __swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
+      pte_set_swap(vicpte, 0, swpfpn);
+
+      struct framephy_struct *newnode = malloc(sizeof(struct framephy_struct));
+      newnode->fpn = vicfpn;
+      newnode->owner = caller->mm;
+      newnode->fp_next = NULL;
+
+      if (newfp_str == NULL) {
+        newfp_str = newnode;
+      } else {
+        struct framephy_struct *temp = newfp_str;
+        while (temp->fp_next != NULL) temp = temp->fp_next;
+        temp->fp_next = newnode;
+      }
     }
-    
-    *frm_lst = head;
-    return 0;
+  }
+  *frm_lst = newfp_str;
+  return 0;
 }
 /*
  * vm_map_ram - do the mapping all vm are to ram storage device

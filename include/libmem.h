@@ -25,4 +25,5 @@ int libfree(struct pcb_t *, uint32_t);
 int libread(struct pcb_t*, uint32_t, uint32_t, uint32_t*);
 int libwrite(struct pcb_t*, BYTE, uint32_t, uint32_t);
 int free_pcb_memph(struct pcb_t *proc);
+int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller);
 #endif /* __LIBMEM_H__ */

@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include "../include/syscall.h"
-
+#define DEBUG_PRINT
 /* Global mutex to ensure thread-safe modifications of VM structures. */
 static pthread_mutex_t mmvm_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -106,7 +106,13 @@ int __alloc(struct pcb_t *caller,
         caller->mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
         caller->mm->symrgtbl[rgid].rg_end   = rgnode.rg_end;
         *alloc_addr                         = rgnode.rg_start;
-
+    //Swap page in
+    int start_page = rgnode.rg_start / PAGE_SIZE;
+    int end_page = rgnode.rg_end / PAGE_SIZE;
+    int pgn, fpn;
+    for (int i = start_page; i <= end_page; i++) {
+      pg_getpage(caller->mm, i, &fpn, caller);
+    }
 #ifdef DEBUG_PRINT
         printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
         printf("PID=%d - Region=%d - Address=%08x - Size=%d byte\n",
