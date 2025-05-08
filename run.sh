@@ -2,10 +2,10 @@
 
 CONFIG_FILE="include/os-cfg.h"
 OUTPUT_DIR="run_output"
+CURRENT_MEM_MODE="FIXED"
 TESTCASES=(
-    "sched_0" "sched_1" "sched"
-    "os_0_mlq_paging" "os_1_mlq_paging"
-    "os_1_singleCPU_mlq" "os_1_singleCPU_mlq_paging"
+    "sched_0" "sched_1" "sched" "os_1_singleCPU_mlq"
+    "os_0_mlq_paging" "os_1_mlq_paging" "os_1_singleCPU_mlq_paging"
     "os_1_mlq_paging_small_1K" "os_1_mlq_paging_small_4K"
 )
 
@@ -26,14 +26,39 @@ set_sched_mode() {
     fi
 }
 
+set_mem_mode() {
+    testcase=$1
+    desired_mode="FIXED"
+
+    if [[ "$testcase" == *"paging"* ]]; then
+        desired_mode="PAGING"
+    fi
+
+    if [ "$CURRENT_MEM_MODE" != "$desired_mode" ]; then
+        echo "Switching memory mode to $desired_mode..."
+        if [ "$desired_mode" == "FIXED" ]; then
+            sed -i 's|^//\+ *#define MM_FIXED_MEMSZ|#define MM_FIXED_MEMSZ|' "$CONFIG_FILE"
+        else
+            sed -i 's|^#define MM_FIXED_MEMSZ|// #define MM_FIXED_MEMSZ|' "$CONFIG_FILE"
+        fi
+        build "true"
+        CURRENT_MEM_MODE="$desired_mode"
+    fi
+}
+
 build() {
-    echo "Building..."
-    make all
+    mute=$1
+    if [ "$mute" != "true" ]; then
+        echo "Building..."
+    fi
+    make all > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         echo "Build failed."
         exit 1
     fi
-    echo "Build successful."
+    if [ "$mute" != "true" ]; then
+        echo "Build successful."
+    fi
 }
 
 run_testcases() {
@@ -41,6 +66,7 @@ run_testcases() {
     outdir="$OUTPUT_DIR/$(echo "$mode" | tr A-Z a-z)"
     mkdir -p "$outdir"
     for tc in "${TESTCASES[@]}"; do
+        set_mem_mode "$tc"
         echo "Running $tc in $mode mode..."
         ./os "$tc" &> "$outdir/${tc}.log"
         echo "Output saved to $outdir/${tc}.log"
@@ -59,6 +85,7 @@ run_single_testcase() {
     done
 
     if [ "$found" = true ]; then
+        set_mem_mode "$testcase"
         outdir="$OUTPUT_DIR/$(echo "$mode" | tr A-Z a-z)"
         mkdir -p "$outdir"
         echo "Running $testcase in $mode mode..."
@@ -72,6 +99,10 @@ run_single_testcase() {
 
 reset_to_cfs() {
     set_sched_mode "CFS"
+    if [ "$CURRENT_MEM_MODE" != "FIXED" ]; then
+        sed -i 's|^//\+ *#define MM_FIXED_MEMSZ|#define MM_FIXED_MEMSZ|' "$CONFIG_FILE"
+        CURRENT_MEM_MODE="FIXED"
+    fi
 }
 
 trap reset_to_cfs EXIT
