@@ -31,9 +31,9 @@ struct mmpaging_ld_args {
 static struct ld_args{
 	char ** path;
 	unsigned long * start_time;
-#ifdef CFS_SCHED
+
 	unsigned long * prio;
-#endif
+
 } ld_processes;
 int num_processes;
 
@@ -46,9 +46,10 @@ struct cpu_args {
 static void * cpu_routine(void * args) {
 	struct timer_id_t * timer_id = ((struct cpu_args*)args)->timer_id;
 	int id = ((struct cpu_args*)args)->id;
-	/* Check for new process in ready queue */
-	int time_left = 0;
 	struct pcb_t * proc = NULL;
+	/* Check for new process in ready queue */
+#ifdef MLQ_SCHED
+	int time_left = 0;
 	while (1) {
 		/* Check the status of current process */
 		if (proc == NULL) {
@@ -95,6 +96,88 @@ static void * cpu_routine(void * args) {
 		time_left--;
 		next_slot(timer_id);
 	}
+#elif CFS_SCHED
+	uint64_t elapsed_ns = 0;
+	uint64_t current_timeslice = 0;
+     while (1) {
+        /* Check the status of current process */
+        if (proc == NULL) {
+            /* No process is running, then we load new process from CFS */
+            proc = cfs_pick_next();
+
+            if (proc == NULL) {
+                next_slot(timer_id);
+                continue; /* No process available, skip this slot */
+            }
+
+            /* Calculate process time slice - include current process weight since it's been dequeued */
+            current_timeslice = cfs_timeslice(proc, proc->cfs_ent.weight) / 1000000; // Convert ns to time slots
+            if (current_timeslice < 1) current_timeslice = 1;
+
+            elapsed_ns = 0;
+            printf("\tCPU %d: Dispatched process %2d (timeslice: %lu)\n",
+                id, proc->pid, current_timeslice);
+        } else if (proc->pc == proc->code->size) {
+            /* The process has finished its job */
+            printf("\tCPU %d: Process %2d has finished\n",
+                id, proc->pid);
+
+            /* We don't need to dequeue as cfs_pick_next already did that */
+            free(proc);
+
+            /* Try to get the next process immediately */
+            proc = cfs_pick_next();
+
+            if (proc != NULL) {
+                /* Calculate process time slice - include current process weight */
+                current_timeslice = cfs_timeslice(proc, proc->cfs_ent.weight) / 1000000; // Convert ns to time slots
+                if (current_timeslice < 1) current_timeslice = 1;
+
+                elapsed_ns = 0;
+                printf("\tCPU %d: Dispatched process %2d (timeslice: %lu)\n",
+                    id, proc->pid, current_timeslice);
+            }
+        } else if (elapsed_ns >= current_timeslice) {
+            /* The process has used its time slice */
+            printf("\tCPU %d: Process %2d used its time slice\n",
+                id, proc->pid);
+
+            /* Update virtual runtime and re-enqueue */
+
+            cfs_task_tick(proc, elapsed_ns * 1000000); // Convert time slots to ns
+
+
+            /* Get the next process immediately */
+            proc = cfs_pick_next();
+
+            if (proc != NULL) {
+                /* Calculate process time slice - include current process weight */
+                current_timeslice = cfs_timeslice(proc, proc->cfs_ent.weight) / 1000000; // Convert ns to time slots
+                if (current_timeslice < 1) current_timeslice = 1;
+
+                elapsed_ns = 0;
+                printf("\tCPU %d: Dispatched process %2d (timeslice: %lu)\n",
+                    id, proc->pid, current_timeslice);
+            }
+        }
+
+        /* Recheck process status after loading new process */
+        if (proc == NULL && done) {
+            /* No process to run, exit */
+            printf("\tCPU %d stopped\n", id);
+            break;
+        } else if (proc == NULL) {
+            /* There may be new processes to run in next time slot */
+            next_slot(timer_id);
+            continue;
+        }
+
+        /* Run current process */
+        run(proc);
+        elapsed_ns++;
+        next_slot(timer_id);
+    }
+#endif
 	detach_event(timer_id);
 	pthread_exit(NULL);
 }
@@ -216,7 +299,7 @@ int main(int argc, char * argv[]) {
 	struct cpu_args * args =
 		(struct cpu_args*)malloc(sizeof(struct cpu_args) * num_cpus);
 	pthread_t ld;
-	
+
 	/* Init timer */
 	int i;
 	for (i = 0; i < num_cpus; i++) {
@@ -236,7 +319,7 @@ int main(int argc, char * argv[]) {
 	/* Create MEM RAM */
 	init_memphy(&mram, memramsz, rdmflag);
 
-        /* Create all MEM SWAP */ 
+        /* Create all MEM SWAP */
 	int sit;
 	for(sit = 0; sit < PAGING_MAX_MMSWP; sit++)
 	       init_memphy(&mswp[sit], memswpsz[sit], rdmflag);

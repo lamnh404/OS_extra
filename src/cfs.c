@@ -58,13 +58,12 @@ struct pcb_t *cfs_pick_next(void) {
     return p;
 }
 
-uint64_t cfs_timeslice(struct pcb_t *p) {
-    uint64_t slice = (SCHED_LATENCY_NSEC * p->cfs_ent.weight)
-                     / (cfs_rq.total_weight ?: 1);
-    return (slice < MIN_GRANULARITY_NSEC)
-           ? MIN_GRANULARITY_NSEC
-           : slice;
+uint64_t cfs_timeslice(struct pcb_t *p, uint32_t extern_weight) {
+    uint64_t total = (cfs_rq.total_weight + extern_weight) ? (cfs_rq.total_weight + extern_weight) : 1;
+    uint64_t slice = (SCHED_LATENCY_NSEC * p->cfs_ent.weight) / total;
+    return (slice < MIN_GRANULARITY_NSEC ? MIN_GRANULARITY_NSEC : slice);
 }
+
 
 void cfs_update_vruntime(struct pcb_t *p, uint64_t delta_ns) {
     p->cfs_ent.vruntime += (delta_ns * WEIGHT_NORM)
